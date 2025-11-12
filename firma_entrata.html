@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Firma Entrata Collegio</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 40px; }
+    canvas { border: 1px solid #000; width: 100%; height: 200px; }
+    input, button { margin: 10px; padding: 10px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Firma Entrata Collegio Docenti</h1>
+
+  <input id="nome" placeholder="Nome"><br>
+  <input id="cognome" placeholder="Cognome"><br>
+  <input id="materia" placeholder="Materia"><br>
+
+  <canvas id="firma"></canvas><br>
+  <button onclick="clearCanvas()">Cancella</button>
+  <button onclick="submitData()">Invia Firma</button>
+
+  <p id="msg"></p>
+
+  <script>
+    const tipo = "entrata";
+    const scriptURL = "https://script.google.com/a/macros/studenti.ittsrimini.edu.it/s/AKfycbwSDeacT5sEzTQJ3e-2Lhfxtw48tkIlIQNoNah9qy6El37Kj8uv2x7U4iFnSR8974Y/exec"; // URL Apps Script
+
+    const canvas = document.getElementById("firma");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.addEventListener("mousedown", () => drawing = true);
+    canvas.addEventListener("mouseup", () => drawing = false);
+    canvas.addEventListener("mousemove", draw);
+
+    function draw(e) {
+      if (!drawing) return;
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function submitData() {
+      const nome = document.getElementById("nome").value;
+      const cognome = document.getElementById("cognome").value;
+      const materia = document.getElementById("materia").value;
+      const firma = canvas.toDataURL();
+
+      if (!nome || !cognome || !materia) {
+        document.getElementById("msg").innerText = "Compila tutti i campi.";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        const scuola = { lat: 45.4642, lon: 9.19 }; // esempio Milano
+        const distanza = Math.sqrt(
+          Math.pow(latitude - scuola.lat, 2) + Math.pow(longitude - scuola.lon, 2)
+        );
+
+        if (distanza > 0.01) { // circa 1 km di tolleranza
+          document.getElementById("msg").innerText = "Firma non valida: sei fuori sede.";
+          return;
+        }
+
+        fetch(scriptURL, {
+          method: 'POST',
+          body: JSON.stringify({ tipo, nome, cognome, materia, firma })
+        })
+        .then(r => r.text())
+        .then(() => document.getElementById("msg").innerText = "Firma registrata ✅")
+        .catch(err => document.getElementById("msg").innerText = "Errore: " + err);
+      });
+    }
+  </script>
+</body>
+</html>
