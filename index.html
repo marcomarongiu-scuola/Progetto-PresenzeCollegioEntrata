@@ -79,15 +79,15 @@
 
   // === OTTIENI IP ===
   async function getPublicIP() {
-    try {
-      const res = await fetch("https://api.ipify.org?format=json");
-      return (await res.json()).ip;
-    } catch {
-      return null;
-    }
+  try {
+    const r = await fetch("https://api.ipify.org?format=json");
+    const j = await r.json();
+    return j.ip;
+  } catch {
+    return null;
   }
-
-  // === INVIO DATI ===
+}
+// INVIO DATI
   async function submitData() {
   const nome = document.getElementById("nome").value;
   const cognome = document.getElementById("cognome").value;
@@ -99,34 +99,34 @@
     return;
   }
 
-  document.getElementById("msg").innerText = "⏳ Verifica rete Wi-Fi...";
+  document.getElementById("msg").innerText = "🔍 Verifica rete Wi-Fi...";
 
   const ip = await getPublicIP();
   if (ip !== ipAutorizzato) {
-    document.getElementById("msg").innerText =
-      `❌ Firma bloccata (IP rilevato: ${ip})`;
+    document.getElementById("msg").innerText = `❌ Firma bloccata – IP rilevato: ${ip}`;
     return;
   }
 
-  document.getElementById("msg").innerText = "✍ Invio firma...";
+  document.getElementById("msg").innerText = "⏳ Invio firma...";
 
   fetch(scriptURL, {
     method: "POST",
     mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
+    headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ tipo, nome, cognome, materia, firma })
   })
-  .then(() => document.getElementById("msg").innerText = "✅ Firma registrata!")
-  .catch(err => document.getElementById("msg").innerText = "❌ Errore: " + err);
-}
-
-  function msg(t) {
-    document.getElementById("msg").innerText = t;
-  }
+  .then(() => {
+    document.getElementById("msg").innerText = "✅ Firma registrata!";
+    clearCanvas();
+  })
+  .catch(() => {
+    document.getElementById("msg").innerText = "⚠ Firma inviata (risposta bloccata)";
+  })};
 </script>
 
 </body>
 </html>
+
 
 
 
