@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <title>Firma Entrata Collegio</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin: 40px; }
-    canvas { border: 1px solid #000; width: 100%; height: 200px; }
-    input, button { margin: 10px; padding: 10px; font-size: 16px; }
+    body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+    #firma { border: 2px solid #000; width: 100%; max-width: 600px; height: 250px; touch-action: none; }
+    input, button { margin: 10px; padding: 10px; font-size: 18px; width: 250px; }
   </style>
 </head>
 <body>
+
   <h1>Firma Entrata Collegio Docenti</h1>
 
   <input id="nome" placeholder="Nome"><br>
@@ -17,81 +18,108 @@
   <input id="materia" placeholder="Materia"><br>
 
   <canvas id="firma"></canvas><br>
+
   <button onclick="clearCanvas()">Cancella</button>
   <button onclick="submitData()">Invia Firma</button>
 
   <p id="msg"></p>
 
-  <script>
-    const tipo = "entrata"; 
-    const scriptURL = "https://script.google.com/a/macros/studenti.ittsrimini.edu.it/s/AKfycbwSDeacT5sEzTQJ3e-2Lhfxtw48tkIlIQNoNah9qy6El37Kj8uv2x7U4iFnSR8974Y/exec";
-    const ipAutorizzato = "89.45.31.138";
+<script>
+  const tipo = "Entrata";
 
-    const canvas = document.getElementById("firma");
-    const ctx = canvas.getContext("2d");
-    let drawing = false;
+  const scriptURL =
+    "https://script.google.com/a/macros/studenti.ittsrimini.edu.it/s/AKfycbwSDeacT5sEzTQJ3e-2Lhfxtw48tkIlIQNoNah9qy6El37Kj8uv2x7U4iFnSR8974Y/exec";
 
-    canvas.addEventListener("mousedown", () => drawing = true);
-    canvas.addEventListener("mouseup", () => drawing = false);
-    canvas.addEventListener("mousemove", draw);
+  const IP_SCOLASTICO = "89.45.31.138";
 
-    function draw(e) {
-      if (!drawing) return;
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.lineTo(e.offsetX, e.offsetY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.offsetX, e.offsetY);
+  // === CANVAS ===
+  const canvas = document.getElementById("firma");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  let drawing = false;
+
+  function startDraw(e) {
+    drawing = true;
+    ctx.beginPath();
+    ctx.moveTo(getX(e), getY(e));
+  }
+
+  function endDraw() {
+    drawing = false;
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineTo(getX(e), getY(e));
+    ctx.stroke();
+  }
+
+  function getX(e) { return e.offsetX ?? e.touches[0].clientX - canvas.offsetLeft; }
+  function getY(e) { return e.offsetY ?? e.touches[0].clientY - canvas.offsetTop; }
+
+  // Mouse
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", endDraw);
+  canvas.addEventListener("mouseleave", endDraw);
+
+  // Touch
+  canvas.addEventListener("touchstart", startDraw);
+  canvas.addEventListener("touchmove", draw);
+  canvas.addEventListener("touchend", endDraw);
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // === OTTIENI IP ===
+  async function getPublicIP() {
+    try {
+      const res = await fetch("https://api.ipify.org?format=json");
+      return (await res.json()).ip;
+    } catch {
+      return null;
+    }
+  }
+
+  // === INVIO DATI ===
+  async function submitData() {
+    const nome = document.getElementById("nome").value.trim();
+    const cognome = document.getElementById("cognome").value.trim();
+    const materia = document.getElementById("materia").value.trim();
+    const firma = canvas.toDataURL();
+
+    if (!nome || !cognome || !materia) {
+      msg("⚠️ Compila tutti i campi");
+      return;
     }
 
-    function clearCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    msg("⏳ Verifica rete scolastica...");
+
+    const ip = await getPublicIP();
+
+    if (ip !== IP_SCOLASTICO) {
+      msg(`❌ Firma bloccata: NON sei sulla rete scolastica. IP rilevato: ${ip}`);
+      return;
     }
 
-     // ---- Ottieni IP Pubblico ----
-    async function getPublicIP() {
-      try {
-        const response = await fetch("https://api.ipify.org?format=json");
-        const data = await response.json();
-        return data.ip;
-      } catch (err) {
-        return null;
-      }
-    }
-    function submitData() {
-      const nome = document.getElementById("nome").value;
-      const cognome = document.getElementById("cognome").value;
-      const materia = document.getElementById("materia").value;
-      const firma = canvas.toDataURL();
+    fetch(scriptURL, {
+      method: "POST",
+      body: JSON.stringify({ tipo, nome, cognome, materia, firma })
+    })
+      .then(() => msg("✅ Firma registrata"))
+      .catch(e => msg("❌ ERRORE invio dati: " + e));
+  }
 
-      if (!nome || !cognome || !materia) {
-        document.getElementById("msg").innerText = "Compila tutti i campi.";
-        return;
-      }
+  function msg(t) {
+    document.getElementById("msg").innerText = t;
+  }
+</script>
 
-       document.getElementById("msg").innerText = "Verifica rete Wi-Fi in corso...";
-
-      const ip = await getPublicIP();
-
-      if (ip !== ipAutorizzato) {
-        document.getElementById("msg").innerText =
-          `❌ Firma bloccata: non sei sulla rete scolastica (IP = ${ip})`;
-        return;
-      }
-
-        fetch(scriptURL, {
-          method: 'POST',
-          body: JSON.stringify({ tipo, nome, cognome, materia, firma })
-        })
-        .then(r => r.text())
-        .then(() => document.getElementById("msg").innerText = "Firma registrata ✅")
-        .catch(err => document.getElementById("msg").innerText = "Errore: " + err);
-      };
-    
-  </script>
 </body>
 </html>
-
-
-
