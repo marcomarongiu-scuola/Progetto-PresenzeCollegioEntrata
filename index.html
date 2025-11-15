@@ -25,6 +25,7 @@
   <script>
     const tipo = "entrata"; 
     const scriptURL = "https://script.google.com/a/macros/studenti.ittsrimini.edu.it/s/AKfycbwSDeacT5sEzTQJ3e-2Lhfxtw48tkIlIQNoNah9qy6El37Kj8uv2x7U4iFnSR8974Y/exec";
+    const ipAutorizzato = "193.186.4.23";
 
     const canvas = document.getElementById("firma");
     const ctx = canvas.getContext("2d");
@@ -48,6 +49,16 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
+     // ---- Ottieni IP Pubblico ----
+    async function getPublicIP() {
+      try {
+        const response = await fetch("https://api.ipify.org?format=json");
+        const data = await response.json();
+        return data.ip;
+      } catch (err) {
+        return null;
+      }
+    }
     function submitData() {
       const nome = document.getElementById("nome").value;
       const cognome = document.getElementById("cognome").value;
@@ -59,17 +70,15 @@
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(pos => {
-        const { latitude, longitude } = pos.coords;
-        const scuola = { lat: 45.4642, lon: 9.19 }; // esempio Milano
-        const distanza = Math.sqrt(
-          Math.pow(latitude - scuola.lat, 2) + Math.pow(longitude - scuola.lon, 2)
-        );
+       document.getElementById("msg").innerText = "Verifica rete Wi-Fi in corso...";
 
-        if (distanza > 0.01) { // circa 1 km di tolleranza
-          document.getElementById("msg").innerText = "Firma non valida: sei fuori sede.";
-          return;
-        }
+      const ip = await getPublicIP();
+
+      if (ip !== ipAutorizzato) {
+        document.getElementById("msg").innerText =
+          `❌ Firma bloccata: non sei sulla rete scolastica (IP = ${ip})`;
+        return;
+      }
 
         fetch(scriptURL, {
           method: 'POST',
@@ -83,3 +92,4 @@
   </script>
 </body>
 </html>
+
