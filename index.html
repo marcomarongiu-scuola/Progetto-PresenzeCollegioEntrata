@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <title>Firma Entrata Collegio</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
-    #firma { border: 2px solid #000; width: 100%; max-width: 600px; height: 250px; touch-action: none; }
-    input, button { margin: 10px; padding: 10px; font-size: 18px; width: 250px; }
+    body { font-family: sans-serif; text-align: center; margin: 40px; }
+    canvas { border: 1px solid #000; width: 100%; height: 200px; }
+    input, button { margin: 10px; padding: 10px; font-size: 16px; }
   </style>
 </head>
 <body>
-
   <h1>Firma Entrata Collegio Docenti</h1>
 
   <input id="nome" placeholder="Nome"><br>
@@ -18,67 +17,41 @@
   <input id="materia" placeholder="Materia"><br>
 
   <canvas id="firma"></canvas><br>
-
   <button onclick="clearCanvas()">Cancella</button>
   <button onclick="submitData()">Invia Firma</button>
 
   <p id="msg"></p>
 
 <script>
-  const tipo = "Entrata";
+const tipo = "Entrata";
+const scriptURL = "https://script.google.com/a/macros/studenti.ittsrimini.edu.it/s/AKfycbzo1EUzj1bG35oSUlJT44KHymGlbgHUDN2HVTPmQERPz2eNTsCzqntSKW0ePMqVVvX_/exec";
+const ipAutorizzato = "89.45.31.138";
 
-  const scriptURL =
-    "https://script.google.com/a/macros/studenti.ittsrimini.edu.it/s/AKfycbzo1EUzj1bG35oSUlJT44KHymGlbgHUDN2HVTPmQERPz2eNTsCzqntSKW0ePMqVVvX_/exec";
+// ===== FIRMA CANVAS =====
+const canvas = document.getElementById("firma");
+const ctx = canvas.getContext("2d");
+let drawing = false;
 
-  const IP_SCOLASTICO = "89.45.31.138";
+canvas.addEventListener("mousedown", () => drawing = true);
+canvas.addEventListener("mouseup", () => drawing = false);
+canvas.addEventListener("mousemove", draw);
 
-  // === CANVAS ===
-  const canvas = document.getElementById("firma");
-  const ctx = canvas.getContext("2d");
+function draw(e) {
+  if (!drawing) return;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(e.offsetX, e.offsetY);
+}
 
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
 
-  let drawing = false;
-
-  function startDraw(e) {
-    drawing = true;
-    ctx.beginPath();
-    ctx.moveTo(getX(e), getY(e));
-  }
-
-  function endDraw() {
-    drawing = false;
-  }
-
-  function draw(e) {
-    if (!drawing) return;
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineTo(getX(e), getY(e));
-    ctx.stroke();
-  }
-
-  function getX(e) { return e.offsetX ?? e.touches[0].clientX - canvas.offsetLeft; }
-  function getY(e) { return e.offsetY ?? e.touches[0].clientY - canvas.offsetTop; }
-
-  // Mouse
-  canvas.addEventListener("mousedown", startDraw);
-  canvas.addEventListener("mousemove", draw);
-  canvas.addEventListener("mouseup", endDraw);
-  canvas.addEventListener("mouseleave", endDraw);
-
-  // Touch
-  canvas.addEventListener("touchstart", startDraw);
-  canvas.addEventListener("touchmove", draw);
-  canvas.addEventListener("touchend", endDraw);
-
-  function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-
-  // === OTTIENI IP ===
-  async function getPublicIP() {
+// ===== OTTIENI IP =====
+async function getPublicIP() {
   try {
     const r = await fetch("https://api.ipify.org?format=json");
     const j = await r.json();
@@ -87,8 +60,9 @@
     return null;
   }
 }
-// INVIO DATI
-  async function submitData() {
+
+// ===== INVIA =====
+async function submitData() {
   const nome = document.getElementById("nome").value;
   const cognome = document.getElementById("cognome").value;
   const materia = document.getElementById("materia").value;
@@ -121,12 +95,8 @@
   })
   .catch(() => {
     document.getElementById("msg").innerText = "⚠ Firma inviata (risposta bloccata)";
-  })};
+  });
+}
 </script>
-
 </body>
 </html>
-
-
-
-
