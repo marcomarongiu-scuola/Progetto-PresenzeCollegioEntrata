@@ -89,32 +89,36 @@
 
   // === INVIO DATI ===
   async function submitData() {
-    const nome = document.getElementById("nome").value.trim();
-    const cognome = document.getElementById("cognome").value.trim();
-    const materia = document.getElementById("materia").value.trim();
-    const firma = canvas.toDataURL();
+  const nome = document.getElementById("nome").value;
+  const cognome = document.getElementById("cognome").value;
+  const materia = document.getElementById("materia").value;
+  const firma = canvas.toDataURL();
 
-    if (!nome || !cognome || !materia) {
-      msg("⚠️ Compila tutti i campi");
-      return;
-    }
-
-    msg("⏳ Verifica rete scolastica...");
-
-    const ip = await getPublicIP();
-
-    if (ip !== IP_SCOLASTICO) {
-      msg(`❌ Firma bloccata: NON sei sulla rete scolastica. IP rilevato: ${ip}`);
-      return;
-    }
-
-    fetch(scriptURL, {
-      method: "POST",
-      body: JSON.stringify({ tipo, nome, cognome, materia, firma })
-    })
-      .then(() => msg("✅ Firma registrata"))
-      .catch(e => msg("❌ ERRORE invio dati: " + e));
+  if (!nome || !cognome || !materia) {
+    document.getElementById("msg").innerText = "⚠ Compila tutti i campi";
+    return;
   }
+
+  document.getElementById("msg").innerText = "⏳ Verifica rete Wi-Fi...";
+
+  const ip = await getPublicIP();
+  if (ip !== ipAutorizzato) {
+    document.getElementById("msg").innerText =
+      `❌ Firma bloccata (IP rilevato: ${ip})`;
+    return;
+  }
+
+  document.getElementById("msg").innerText = "✍ Invio firma...";
+
+  fetch(scriptURL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tipo, nome, cognome, materia, firma })
+  })
+  .then(() => document.getElementById("msg").innerText = "✅ Firma registrata!")
+  .catch(err => document.getElementById("msg").innerText = "❌ Errore: " + err);
+}
 
   function msg(t) {
     document.getElementById("msg").innerText = t;
@@ -123,4 +127,5 @@
 
 </body>
 </html>
+
 
